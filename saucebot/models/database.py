@@ -1,4 +1,5 @@
 import discord
+import typing
 from pony.orm import *
 
 from saucebot.log import log
@@ -11,6 +12,20 @@ db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
 class Servers(db.Entity):
     server_id = Required(int, size=64, unique=True)
     api_key = Optional(str, 40)
+
+    @db_session
+    def lookup_guild(guild: discord.Guild) -> typing.Optional[str]:
+        """
+        Gets the SauceNao API key for the specified guild
+        Args:
+            guild (discord.Guild):
+
+        Returns:
+            typing.Optional[str]
+        """
+        server = Servers.get(server_id=guild.id)
+        if server:
+            return server.api_key
 
     @db_session
     def register(guild: discord.Guild, api_key: str):

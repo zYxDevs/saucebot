@@ -1,4 +1,5 @@
 import logging
+import re
 import reprlib
 
 import typing
@@ -12,6 +13,7 @@ from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedEx
 from saucebot.config import config
 from saucebot.helpers import validate_url, basic_embed
 from saucebot.lang import lang
+from saucebot.models.database import Servers
 
 
 class Sauce(commands.Cog):
@@ -20,10 +22,7 @@ class Sauce(commands.Cog):
     """
     def __init__(self):
         self._log = logging.getLogger(__name__)
-
-        # SauceNAO
-        self._default_api_key = config.get('SauceNao', 'api_key')
-        self._saucenow = SauceNao(api_key=self._default_api_key)
+        self._re_api_key = re.compile(r"^[a-zA-Z0-9]{40}$")
 
     @commands.command(aliases=['source'])
     async def sauce(self, ctx: commands.context.Context, url: typing.Optional[str] = None) -> None:
@@ -65,7 +64,14 @@ class Sauce(commands.Cog):
 
         # Attempt to find the source of this image
         try:
-            sauce = await self._saucenow.from_url(url)
+            # Make sure we have an API key configured for this server
+            api_key = Servers.lookup_guild(ctx.guild)
+            if not api_key:
+                await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_missing')))
+                return
+
+            saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
+            sauce = await saucenao.from_url(url)
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
@@ -82,8 +88,8 @@ class Sauce(commands.Cog):
 
         repr = reprlib.Repr()
         repr.maxstring = 16
-        self._log.debug(f"{sauce.short_remaining} short API queries remaining for {repr.repr(self._default_api_key)}")
-        self._log.info(f"{sauce.long_remaining} daily API queries remaining for {repr.repr(self._default_api_key)}")
+        self._log.debug(f"{sauce.short_remaining} short API queries remaining for {repr.repr(api_key)}")
+        self._log.info(f"{sauce.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
 
         # Build our embed
         embed = basic_embed()
@@ -104,3 +110,18 @@ class Sauce(commands.Cog):
             embed.add_field(name=lang('Sauce', 'chapter'), value=result.chapter)
 
         await ctx.send(embed=embed)
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def apikey(self, ctx: commands.context.Context, api_key: str) -> None:
+        """
+        Define the SauceNao API key for this server.
+
+        Be sure to run this command from a channel that is only accessible to administrators!
+        """
+        if not self._re_api_key.match(api_key):
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'bad_api_key')))
+            return
+
+        Servers.register(ctx.guild, api_key)
+        await ctx.send(embed=basic_embed(title=lang('Global', 'generic_success'), description=lang('Sauce', 'registered_api_key')))
