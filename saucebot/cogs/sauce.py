@@ -124,4 +124,5 @@ class Sauce(commands.Cog):
             return
 
         Servers.register(ctx.guild, api_key)
+        await ctx.message.delete()
         await ctx.send(embed=basic_embed(title=lang('Global', 'generic_success'), description=lang('Sauce', 'registered_api_key')))
