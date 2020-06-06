@@ -1,8 +1,10 @@
 from saucebot.bot import bot
 from saucebot.cogs.misc import Misc
+from saucebot.cogs.sauce import Sauce
 from saucebot.log import log
 
 
+bot.add_cog(Sauce())
 bot.add_cog(Misc())
 
 
