@@ -37,7 +37,7 @@ class Misc(commands.Cog):
         embed.description = lang('Misc', 'ping_response', {'server': response_time, 'message': message_delay})
         await message.edit(embed=embed)
 
-    @commands.command(alias=['support', 'patreon'])
+    @commands.command(aliases=['support', 'patreon'])
     async def info(self, ctx: commands.context.Context):
         """
         Learn more about the SauceBot project and how to contribute!
