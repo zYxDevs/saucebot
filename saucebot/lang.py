@@ -25,7 +25,7 @@ def lang(category: str, key: str, replacements: typing.Optional[dict] = None, de
     if string:
         if replacements:
             for rkey, rvalue in replacements.items():
-                string = string.replace(f"{{{rkey}}}", rvalue)
+                string = string.replace(f"{{{rkey}}}", str(rvalue))
 
         if member:
             string = _member_replacements(string, member)
