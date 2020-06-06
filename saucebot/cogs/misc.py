@@ -20,6 +20,8 @@ class Misc(commands.Cog):
         """
         Tests the bot and Discord message response times
         """
+        self._log.debug("Pong!")
+
         # Time between when the message was sent and when we processed it
         now = datetime.utcnow().timestamp()
         response_time = round((now - ctx.message.created_at.timestamp()) * 1000, 1)
