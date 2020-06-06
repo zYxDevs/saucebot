@@ -9,7 +9,7 @@ db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
 
 # noinspection PyMethodParameters
 class Servers(db.Entity):
-    server_id = Required(int, size=64, unsigned=True, unique=True)
+    server_id = Required(int, size=64, unique=True)
     api_key = Optional(str, 40)
 
     @db_session
