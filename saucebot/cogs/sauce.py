@@ -1,4 +1,5 @@
 import logging
+import reprlib
 
 import typing
 
@@ -78,6 +79,11 @@ class Sauce(commands.Cog):
             return
 
         result = sauce.results[0]
+
+        repr = reprlib.Repr()
+        repr.maxstring = 16
+        self._log.debug(f"{sauce.short_remaining} short API queries remaining for {repr.repr(self._default_api_key)}")
+        self._log.info(f"{sauce.long_remaining} daily API queries remaining for {repr.repr(self._default_api_key)}")
 
         # Build our embed
         embed = basic_embed()
