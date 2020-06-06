@@ -1,6 +1,9 @@
 # Local configuration file
 config.ini
 
+# Database file
+saucebot/models/*.sqlite
+
 # Created by .ignore support plugin (hsz.mobi)
 ### NotepadPP template
 # Notepad++ backups #
