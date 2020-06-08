@@ -1,4 +1,4 @@
-pysaucenao ~= 0.2.1
+pysaucenao ~= 0.2.2
 discord.py ~= 1.3.3
 aiohttp
 pony ~= 0.7.13
