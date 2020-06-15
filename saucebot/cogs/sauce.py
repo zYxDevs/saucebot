@@ -94,11 +94,11 @@ class Sauce(commands.Cog):
         # Build our embed
         embed = basic_embed()
         embed.set_footer(text=lang('Sauce', 'found', member=ctx.author), icon_url='https://i.imgur.com/Mw109wP.png')
-        embed.title = result.title
+        embed.title = result.title or result.author_name or "Untitled"
         embed.url = result.url
         embed.description = lang('Sauce', 'match_title', {'index': result.index, 'similarity': result.similarity})
 
-        if result.author_name:
+        if result.author_name and result.title:
             embed.set_author(name=result.author_name, url=result.author_url or EmptyEmbed)
         embed.set_thumbnail(url=result.thumbnail)
 
