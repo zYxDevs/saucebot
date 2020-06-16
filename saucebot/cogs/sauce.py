@@ -84,11 +84,12 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
             return
         except SauceNaoException:
+            self._log.exception(f"[{ctx.guild.name}] An unknown error occurred while looking up this image")
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
 
         if not sauce:
-            self._log.info("No image sources found")
+            self._log.info(f"[{ctx.guild.name}] No image sources found")
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
             return
 
