@@ -7,8 +7,8 @@ import typing
 import discord
 from discord.embeds import EmptyEmbed
 from discord.ext import commands
-from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedException, SauceNaoException, VideoSource, \
-    MangaSource
+from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedException, SauceNaoException,\
+    InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource
 
 from saucebot.config import config
 from saucebot.helpers import validate_url, basic_embed
@@ -46,7 +46,7 @@ class Sauce(commands.Cog):
                 if not attachment:
                     continue
 
-                self._log.info(f"Attachment found: {attachment.url}")
+                self._log.info(f"[{ctx.guild.name}] Attachment found: {attachment.url}")
                 url = attachment.url
                 break
 
@@ -55,7 +55,7 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
             return
 
-        self._log.info("Looking up image source/sauce: " + url)
+        self._log.info(f"[{ctx.guild.name}] Looking up image source/sauce: {url}")
 
         # Make sure the URL is valid
         if not validate_url(url):
@@ -75,6 +75,14 @@ class Sauce(commands.Cog):
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
+        except InvalidOrWrongApiKeyException:
+            self._log.warning(f"[{ctx.guild.name}] API key was rejected by SauceNao")
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'rejected_api_key')))
+            return
+        except InvalidImageException:
+            self._log.info(f"[{ctx.guild.name}] An invalid image / image link was provided")
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
+            return
         except SauceNaoException:
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
@@ -88,8 +96,8 @@ class Sauce(commands.Cog):
 
         repr = reprlib.Repr()
         repr.maxstring = 16
-        self._log.debug(f"{sauce.short_remaining} short API queries remaining for {repr.repr(api_key)}")
-        self._log.info(f"{sauce.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
+        self._log.debug(f"[{ctx.guild.name}] {sauce.short_remaining} short API queries remaining for {repr.repr(api_key)}")
+        self._log.info(f"[{ctx.guild.name}] {sauce.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
 
         # Build our embed
         embed = basic_embed()
