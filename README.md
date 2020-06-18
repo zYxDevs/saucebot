@@ -4,27 +4,39 @@
 SauceBot is an open-source Discord bot that utilizes the [SauceNao API](https://saucenao.com/) to find the source of images or anime screencaps.
 
 ## Documentation
-### Registering a SauceNAO API key
-This is required to get the bot up and running on your server. The Sauce commands will not work until you have an API key registered.
-
-Freely registered accounts have a limit of 200 per day, and SauceNAO supporters have a limit of 5000 queries per day.
-
-You can register for an API key here:
-
-https://saucenao.com/user.php?page=search-api
-
 ### Inviting the bot
 You can invite SauceBot to your server using the following invite link. Keep in mind, it's still in beta!
 
 https://discord.com/api/oauth2/authorize?client_id=718642000898818048&permissions=604892224&scope=bot
 
 ### Using the bot
-Before you can use the bots Sauce commands, you'll need to register the API key you obtained above.
+SauceBot can operate in multiple ways. All of which center around using the `?sauce` command.
 
-To do this, run `?apikey YOUR_API_KEY_HERE` from a channel that only administrators have access to. (You'll need to grant the bot access to this channel as well, at least temporarily).
-
-Once that's out of the way, you and your members will be able to look up the source of uploads using the bots `?sauce` command!
-
-This command will either search for the sauce of the attached image, the specified image URL, or the last image uploaded to the channel.
+The first way is to provide a direct URL to the image you want to look up as a command argument, like so,
+```
+?sauce https://i.redd.it/rqtzjynwx7351.jpg
+```
 
 ![Bot demonstration](https://i.imgur.com/4zbCKbc.png)
+
+The second way is to upload an image to the channel and supply `?sauce` as the images comment.
+
+Lastly, if someone just uploaded an image to a channel and you want to look up the sauce, just use the `?sauce` command without any arguments, and it'll automatically do a search on the last attachment uploaded to that channel!
+
+### Increasing your API limits
+Each Discord server is currently allotted 50 free API queries/day from a shared pool. This value may change depending on how much Patreon/Github funding the project receives, and how popular the bot becomes.
+
+If you run a larger server and need more API queries, you can upgrade to a limit of 5,000 queries/day by obtaining an [enhanced license key](https://saucenao.com/user.php?page=account-upgrades) directly from SauceNao for $6/month.
+
+To register an API key to your server, run `?apikey YOUR_API_KEY_HERE` from a channel that only administrators have access to. (You'll need to grant the bot access to this channel as well, at least temporarily).
+
+You should receive a confirmation message afterwards verifying your API key was successfully linked.
+
+Keep in mind, this will only work for **enhanced** license keys. Freely registered API keys will not work, as these are still IP restricted (meaning, multiple free accounts cannot be used on the same network). If you want to use a freely registered API key, you'll need to run your own instance of the bot.
+
+### Supporters
+We unfortuantely don't have any supporters yet. Perhaps you'd like to be the first?
+
+If you sponsor this project on Patreon, your name will be added here!
+
+https://www.patreon.com/saucebot
