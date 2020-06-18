@@ -11,7 +11,7 @@ from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedEx
     InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource
 from pysaucenao.containers import ACCOUNT_ENHANCED
 
-from saucebot.config import config
+from saucebot.config import config, server_api_limit, member_api_limit
 from saucebot.helpers import validate_url, basic_embed
 from saucebot.lang import lang
 from saucebot.models.database import Servers
@@ -23,9 +23,11 @@ class Sauce(commands.Cog):
     """
     def __init__(self):
         self._log = logging.getLogger(__name__)
+        self._api_key = config.get('SauceNao', 'api_key', fallback=None)
         self._re_api_key = re.compile(r"^[a-zA-Z0-9]{40}$")
 
     @commands.command(aliases=['source'])
+    @commands.cooldown(server_api_limit, 86400, commands.BucketType.guild)
     async def sauce(self, ctx: commands.context.Context, url: typing.Optional[str] = None) -> None:
         """
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
@@ -68,8 +70,7 @@ class Sauce(commands.Cog):
             # Make sure we have an API key configured for this server
             api_key = Servers.lookup_guild(ctx.guild)
             if not api_key:
-                await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_missing')))
-                return
+                api_key = self._api_key
 
             saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
             sauce = await saucenao.from_url(url)
