@@ -2,10 +2,16 @@ import discord
 import typing
 from pony.orm import *
 
+from saucebot.config import config
 from saucebot.log import log
 
 db = Database()
-db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
+
+if config.has_section('MySQL'):
+    db.bind(provider='mysql', host=config.get('MySQL', 'hostname'), user=config.get('MySQL', 'username'),
+            passwd=config.get('MySQL', 'password'), db=config.get('MySQL', 'database'))
+else:
+    db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
 
 
 # noinspection PyMethodParameters
