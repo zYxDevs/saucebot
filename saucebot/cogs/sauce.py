@@ -9,6 +9,7 @@ from discord.embeds import EmptyEmbed
 from discord.ext import commands
 from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedException, SauceNaoException,\
     InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource
+from pysaucenao.containers import ACCOUNT_ENHANCED
 
 from saucebot.config import config
 from saucebot.helpers import validate_url, basic_embed
@@ -122,16 +123,40 @@ class Sauce(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
+    @commands.cooldown(5, 1800, commands.BucketType.guild)
     async def apikey(self, ctx: commands.context.Context, api_key: str) -> None:
         """
-        Define the SauceNao API key for this server.
+        Define your own enhanced SauceNao API key for this server.
 
-        Be sure to run this command from a channel that is only accessible to administrators!
+        This can only be used to add enhanced / upgraded API keys, not freely registered ones. Adding your own enhanced
+        API key will remove the shared daily API query limit from your server.
+
+        You can get an enhanced API key from the following page:
+        https://saucenao.com/user.php?page=account-upgrades
         """
+        await ctx.message.delete()
+
+        # Make sure the API key is formatted properly
         if not self._re_api_key.match(api_key):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'bad_api_key')))
             return
 
+        # Test and make sure it's a valid enhanced-level API key
+        saucenao = SauceNao(api_key=api_key)
+        test = await saucenao.test()
+
+        # Make sure the test went through successfully
+        if not test.success:
+            self._log.error(f"[{ctx.guild.name}] An unknown error occurred while assigning an API key to this server",
+                            exc_info=test.error)
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
+            return
+
+        # Make sure this is an enhanced API key
+        if test.account_type != ACCOUNT_ENHANCED:
+            self._log.info(f"[{ctx.guild.name}] Rejecting an attempt to register a free API key")
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_free')))
+            return
+
         Servers.register(ctx.guild, api_key)
-        await ctx.message.delete()
         await ctx.send(embed=basic_embed(title=lang('Global', 'generic_success'), description=lang('Sauce', 'registered_api_key')))
