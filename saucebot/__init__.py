@@ -4,4 +4,4 @@ __credits__     = ['FujiMakoto']
 __license__     = 'gpl-3.0'
 __maintainer__  = 'FujiMakoto'
 __email__       = 'makoto+github@taiga.sh'
-__status__      = 'Development'
+__status__      = 'Beta'
