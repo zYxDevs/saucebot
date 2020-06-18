@@ -5,10 +5,11 @@ import reprlib
 import typing
 
 import discord
+import pysaucenao
 from discord.embeds import EmptyEmbed
 from discord.ext import commands
-from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedException, SauceNaoException,\
-    InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource
+from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedException, SauceNaoException, \
+    InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource, GenericSource
 from pysaucenao.containers import ACCOUNT_ENHANCED
 
 from saucebot.config import config, server_api_limit, member_api_limit
@@ -77,10 +78,24 @@ class Sauce(commands.Cog):
             if not api_key:
                 api_key = self._api_key
 
-            saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
+            # Log the query
             SauceQueries.log(ctx, url)
-            sauce = await saucenao.from_url(url)
-            SauceCache.add_or_update(url, sauce.results[0])
+
+            # Check if we have a cached entry
+            search = None
+            cache = SauceCache.fetch(url)  # type: SauceCache
+            if cache:
+                container = getattr(pysaucenao.containers, cache.result_class)
+                sauce = container(cache.header, cache.result)  # type: GenericSource
+                self._log.info(f'Cache entry found: {sauce.title}')
+            else:
+                # Initialize SauceNao and execute a search query
+                saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
+                search = await saucenao.from_url(url)
+                sauce = search.results[0]
+
+                # Cache the search result
+                SauceCache.add_or_update(url, sauce)
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
@@ -102,30 +117,29 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
             return
 
-        result = sauce.results[0]
-
-        repr = reprlib.Repr()
-        repr.maxstring = 16
-        self._log.debug(f"[{ctx.guild.name}] {sauce.short_remaining} short API queries remaining for {repr.repr(api_key)}")
-        self._log.info(f"[{ctx.guild.name}] {sauce.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
+        if search:
+            repr = reprlib.Repr()
+            repr.maxstring = 16
+            self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {repr.repr(api_key)}")
+            self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
 
         # Build our embed
         embed = basic_embed()
         embed.set_footer(text=lang('Sauce', 'found', member=ctx.author), icon_url='https://i.imgur.com/Mw109wP.png')
-        embed.title = result.title or result.author_name or "Untitled"
-        embed.url = result.url
-        embed.description = lang('Sauce', 'match_title', {'index': result.index, 'similarity': result.similarity})
+        embed.title = sauce.title or sauce.author_name or "Untitled"
+        embed.url = sauce.url
+        embed.description = lang('Sauce', 'match_title', {'index': sauce.index, 'similarity': sauce.similarity})
 
-        if result.author_name and result.title:
-            embed.set_author(name=result.author_name, url=result.author_url or EmptyEmbed)
-        embed.set_thumbnail(url=result.thumbnail)
+        if sauce.author_name and sauce.title:
+            embed.set_author(name=sauce.author_name, url=sauce.author_url or EmptyEmbed)
+        embed.set_thumbnail(url=sauce.thumbnail)
 
-        if isinstance(result, VideoSource):
-            embed.add_field(name=lang('Sauce', 'episode'), value=result.episode)
-            embed.add_field(name=lang('Sauce', 'timestamp'), value=result.timestamp)
+        if isinstance(sauce, VideoSource):
+            embed.add_field(name=lang('Sauce', 'episode'), value=sauce.episode)
+            embed.add_field(name=lang('Sauce', 'timestamp'), value=sauce.timestamp)
 
-        if isinstance(result, MangaSource):
-            embed.add_field(name=lang('Sauce', 'chapter'), value=result.chapter)
+        if isinstance(sauce, MangaSource):
+            embed.add_field(name=lang('Sauce', 'chapter'), value=sauce.chapter)
 
         await ctx.send(embed=embed)
 

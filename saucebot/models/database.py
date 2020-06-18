@@ -58,7 +58,7 @@ class SauceCache(db.Entity):
     result_class    = Required(str, 250)
 
     @db_session
-    def fetch(self, url: str):
+    def fetch(url: str):
         """
         Fetch a cached result, if available
         Args:
@@ -67,7 +67,10 @@ class SauceCache(db.Entity):
         Returns:
 
         """
-        pass
+        h = hashlib.new('md5')
+        h.update(url.encode())
+
+        return SauceCache.get(url_hash=h.hexdigest())
 
     @db_session
     def add_or_update(url: str, result: GenericSource):
