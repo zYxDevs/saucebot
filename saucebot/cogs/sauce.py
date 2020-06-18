@@ -67,7 +67,12 @@ class Sauce(commands.Cog):
 
         # Attempt to find the source of this image
         try:
-            # Make sure we have an API key configured for this server
+            # Make sure this user hasn't exceeded their API limits
+            if self._check_member_limited(ctx):
+                await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'member_api_limit_exceeded')))
+                return
+
+            # Get the API key for this server
             api_key = Servers.lookup_guild(ctx.guild)
             if not api_key:
                 api_key = self._api_key
@@ -143,6 +148,23 @@ class Sauce(commands.Cog):
 
             self._log.info(f"[{ctx.guild.name}] Guild has exceeded their available API queries for the day")
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
+
+    def _check_member_limited(self, ctx: commands.context.Context) -> bool:
+        """
+        Check if the author of this message has exceeded their API limits
+        Args:
+            ctx (commands.context.Context):
+
+        Returns:
+            bool
+        """
+        member_limit = config.getint('SauceNao', 'member_api_limit', fallback=0)
+        if not member_limit:
+            self._log.debug('No member limit defined')
+            return False
+
+        count = SauceQueries.user_count(ctx.author)
+        return count >= member_limit
 
     @commands.command()
     @commands.has_permissions(administrator=True)

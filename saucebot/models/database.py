@@ -91,7 +91,6 @@ class SauceCache(db.Entity):
             log.debug(f"Refreshing cache entry for {h.hexdigest()}")
             cache.delete()
 
-        print(type(result).__name__)
         return SauceCache(url_hash=h.hexdigest(), created_at=now, header=result.header, result=result.data,
                           result_class=type(result).__name__)
 
@@ -122,8 +121,21 @@ class SauceQueries(db.Entity):
         log.debug(f"Logging query from user {ctx.author} with URL hash {h.hexdigest()}")
         return SauceQueries(server_id=ctx.guild.id, user_id=ctx.author.id, url_hash=h.hexdigest(), queried=now)
 
+    # noinspection PyTypeChecker
+    @db_session
+    def user_count(user: discord.User, minutes: int = 5) -> int:
+        """
+        Get a count of how many requests the specified discord user has made in the specified timespan
+        Args:
+            user (discord.User):
+            minutes (int):
 
-if str(config.get('Bot', 'LogLevel', fallback='INFO')).upper().strip() == 'DEBUG':
-    sql_debug(True)
+        Returns:
+            int
+        """
+        log.debug(f"Counting how many queries {user} has made in the last {minutes} minute(s)")
+        cutoff = int(time()) - (minutes * 60)
+        return count(q for q in SauceQueries if q.queried > cutoff)
+
 
 db.generate_mapping(create_tables=True)
