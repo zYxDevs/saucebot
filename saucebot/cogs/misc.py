@@ -45,7 +45,7 @@ class Misc(commands.Cog):
         embed = discord.Embed()
         embed.set_thumbnail(url=bot.user.avatar_url)
         embed.title = lang('Misc', 'info_title')
-        embed.url = 'https://github.com/FujiMakoto/saucebot'
+        embed.url = 'https://www.patreon.com/saucebot'
         embed.description = lang('Misc', 'info_desc')
 
         await ctx.send(embed=embed)
