@@ -34,6 +34,11 @@ You should receive a confirmation message afterwards verifying your API key was 
 
 Keep in mind, this will only work for **enhanced** license keys. Freely registered API keys will not work, as these are still IP restricted (meaning, multiple free accounts cannot be used on the same network). If you want to use a freely registered API key, you'll need to run your own instance of the bot.
 
+### Give it a test run!
+Want to give SauceBot a try? Join the support discord and use the `#sfw-lookups` and `#nsfw-lookups` channels respectively to experiment!
+
+https://discord.gg/p7fstG4
+
 ### Supporters
 We unfortuantely don't have any supporters yet. Perhaps you'd like to be the first?
 
