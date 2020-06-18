@@ -14,7 +14,7 @@ from pysaucenao.containers import ACCOUNT_ENHANCED
 from saucebot.config import config, server_api_limit, member_api_limit
 from saucebot.helpers import validate_url, basic_embed
 from saucebot.lang import lang
-from saucebot.models.database import Servers
+from saucebot.models.database import Servers, SauceQueries, SauceCache
 
 
 class Sauce(commands.Cog):
@@ -73,7 +73,9 @@ class Sauce(commands.Cog):
                 api_key = self._api_key
 
             saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
+            SauceQueries.log(ctx, url)
             sauce = await saucenao.from_url(url)
+            SauceCache.add_or_update(url, sauce.results[0])
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
