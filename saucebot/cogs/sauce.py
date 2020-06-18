@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import reprlib
@@ -12,6 +13,7 @@ from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedEx
     InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource, GenericSource
 from pysaucenao.containers import ACCOUNT_ENHANCED
 
+from saucebot.bot import bot
 from saucebot.config import config, server_api_limit, member_api_limit
 from saucebot.helpers import validate_url, basic_embed
 from saucebot.lang import lang
@@ -26,6 +28,7 @@ class Sauce(commands.Cog):
         self._log = logging.getLogger(__name__)
         self._api_key = config.get('SauceNao', 'api_key', fallback=None)
         self._re_api_key = re.compile(r"^[a-zA-Z0-9]{40}$")
+        bot.loop.create_task(self.purge_cache())
 
     @commands.command(aliases=['source'])
     @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
@@ -219,3 +222,19 @@ class Sauce(commands.Cog):
 
         Servers.register(ctx.guild, api_key)
         await ctx.send(embed=basic_embed(title=lang('Global', 'generic_success'), description=lang('Sauce', 'registered_api_key')))
+
+    async def purge_cache(self):
+        """
+        Task to purge SauceNao cache entries older than 24-hours every 6-hours
+        Returns:
+            None
+        """
+        await bot.wait_until_ready()
+
+        while not bot.is_closed():
+            try:
+                self._log.info('[SYSTEM] Purging SauceNao query cache')
+                SauceCache.purge_cache()
+                await asyncio.sleep(21600)
+            except Exception:
+                self._log.exception('An unknown error occurred while purging the local query cache')

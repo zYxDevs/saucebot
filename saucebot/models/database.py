@@ -97,6 +97,17 @@ class SauceCache(db.Entity):
         return SauceCache(url_hash=h.hexdigest(), created_at=now, header=result.header, result=result.data,
                           result_class=type(result).__name__)
 
+    # noinspection PyTypeChecker
+    @db_session
+    def purge_cache(cutoff_minutes: int = 86400) -> None:
+        """
+        Purge cache entries older than the supplied cutoff
+        Returns:
+            None
+        """
+        cutoff = int(time()) - (cutoff_minutes * 60)
+        delete(c for c in SauceCache if c.created_at < cutoff)
+
 
 # noinspection PyMethodParameters
 class SauceQueries(db.Entity):
