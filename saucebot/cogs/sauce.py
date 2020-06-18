@@ -27,7 +27,7 @@ class Sauce(commands.Cog):
         self._re_api_key = re.compile(r"^[a-zA-Z0-9]{40}$")
 
     @commands.command(aliases=['source'])
-    @commands.cooldown(server_api_limit, 86400, commands.BucketType.guild)
+    @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
     async def sauce(self, ctx: commands.context.Context, url: typing.Optional[str] = None) -> None:
         """
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
@@ -121,6 +121,26 @@ class Sauce(commands.Cog):
             embed.add_field(name=lang('Sauce', 'chapter'), value=result.chapter)
 
         await ctx.send(embed=embed)
+
+    @sauce.error
+    async def sauce_error(self, ctx: commands.context.Context, error) -> None:
+        """
+        Override guild cooldowns for servers with their own API keys provided
+        Args:
+            ctx (commands.context.Context):
+            error (Exception):
+
+        Returns:
+            None
+        """
+        if isinstance(error, commands.CommandOnCooldown):
+            if Servers.lookup_guild(ctx.guild):
+                self._log.info(f"[{ctx.guild.name}] Guild has an enhanced API key; ignoring triggered guild API limit")
+                await ctx.reinvoke()
+                return
+
+            self._log.info(f"[{ctx.guild.name}] Guild has exceeded their available API queries for the day")
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
 
     @commands.command()
     @commands.has_permissions(administrator=True)
