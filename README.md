@@ -40,7 +40,8 @@ Want to give SauceBot a try? Join the support discord and use the `#sfw-lookups`
 https://discord.gg/p7fstG4
 
 ### Supporters
-We unfortuantely don't have any supporters yet. Perhaps you'd like to be the first?
+#### Main Characters
+* Tsuneoshi (Tsune#0301)
 
 If you sponsor this project on Patreon, your name will be added here!
 
