@@ -1,5 +1,5 @@
 # SauceBot
-![GitHub](https://img.shields.io/github/license/FujiMakoto/saucebot) ![GitHub release (latest by date)](https://img.shields.io/github/v/release/fujimakoto/saucebot)
+[![Discord](https://img.shields.io/discord/722787678546034769?label=discord&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/p7fstG4) [![GitHub](https://img.shields.io/github/license/FujiMakoto/saucebot)](https://github.com/FujiMakoto/saucebot/blob/master/LICENSE) [![GitHub release (latest by date)](https://img.shields.io/github/v/release/fujimakoto/saucebot)](https://github.com/FujiMakoto/saucebot/releases)
 
 SauceBot is an open-source Discord bot that utilizes the [SauceNao API](https://saucenao.com/) to find the source of images or anime screencaps.
 
@@ -34,8 +34,14 @@ You should receive a confirmation message afterwards verifying your API key was 
 
 Keep in mind, this will only work for **enhanced** license keys. Freely registered API keys will not work, as these are still IP restricted (meaning, multiple free accounts cannot be used on the same network). If you want to use a freely registered API key, you'll need to run your own instance of the bot.
 
+### Give it a test run!
+Want to give SauceBot a try? Join the support discord and use the `#sfw-lookups` and `#nsfw-lookups` channels respectively to experiment!
+
+https://discord.gg/p7fstG4
+
 ### Supporters
-We unfortuantely don't have any supporters yet. Perhaps you'd like to be the first?
+#### Main Characters
+* Tsuneoshi (Tsune#0301)
 
 If you sponsor this project on Patreon, your name will be added here!
 
