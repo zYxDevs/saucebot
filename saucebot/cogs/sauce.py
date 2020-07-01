@@ -98,7 +98,8 @@ class Sauce(commands.Cog):
                 sauce = search.results[0] if search.results else None
 
                 # Cache the search result
-                SauceCache.add_or_update(url, sauce)
+                if sauce:
+                    SauceCache.add_or_update(url, sauce)
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
