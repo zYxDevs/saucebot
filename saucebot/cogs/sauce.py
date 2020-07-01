@@ -95,7 +95,7 @@ class Sauce(commands.Cog):
                 # Initialize SauceNao and execute a search query
                 saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
                 search = await saucenao.from_url(url)
-                sauce = search.results[0]
+                sauce = search.results[0] if search.results else None
 
                 # Cache the search result
                 SauceCache.add_or_update(url, sauce)
@@ -115,16 +115,16 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
 
-        if not sauce:
-            self._log.info(f"[{ctx.guild.name}] No image sources found")
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
-            return
-
         if search:
             repr = reprlib.Repr()
             repr.maxstring = 16
             self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {repr.repr(api_key)}")
             self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
+
+        if not sauce:
+            self._log.info(f"[{ctx.guild.name}] No image sources found")
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
+            return
 
         # Build our embed
         embed = basic_embed()
