@@ -166,6 +166,8 @@ class Sauce(commands.Cog):
             self._log.info(f"[{ctx.guild.name}] Guild has exceeded their available API queries for the day")
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
 
+        raise error
+
     def _check_member_limited(self, ctx: commands.context.Context) -> bool:
         """
         Check if the author of this message has exceeded their API limits
