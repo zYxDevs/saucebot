@@ -83,7 +83,7 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
             return
 
-        await ctx.send(embed=self._build_sauce_embed(sauce))
+        await ctx.send(embed=self._build_sauce_embed(ctx, sauce))
 
     async def _get_last_image_post(self, ctx: commands.context.Context):
         """
@@ -155,10 +155,11 @@ class Sauce(commands.Cog):
 
         return sauce
 
-    def _build_sauce_embed(self, sauce: GenericSource) -> discord.Embed:
+    def _build_sauce_embed(self, ctx: commands.context.Context, sauce: GenericSource) -> discord.Embed:
         """
         Builds a Discord embed for the provided SauceNao lookup
         Args:
+            ctx (commands.context.Context)
             sauce (GenericSource):
 
         Returns:
