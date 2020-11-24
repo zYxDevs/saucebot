@@ -117,10 +117,10 @@ class Sauce(commands.Cog):
             return
 
         if search:
-            repr = reprlib.Repr()
-            repr.maxstring = 16
-            self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {repr.repr(api_key)}")
-            self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
+            rep = reprlib.Repr()
+            rep.maxstring = 16
+            self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {rep.repr(api_key)}")
+            self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {rep.repr(api_key)}")
 
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
