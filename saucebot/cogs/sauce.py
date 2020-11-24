@@ -95,9 +95,6 @@ class Sauce(commands.Cog):
             typing.Optional[str]
         """
         async for message in ctx.channel.history(limit=50):  # type: discord.Message
-            if not message.attachments:
-                continue
-
             # Make sure there's an image attachment
             image_attachments = []  # type: typing.Optional[typing.List[discord.Attachment]]
             for _attachment in message.attachments:  # type: discord.Attachment
