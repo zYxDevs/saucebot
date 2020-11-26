@@ -2,33 +2,45 @@ import asyncio
 import logging
 import re
 import reprlib
-
 import typing
+from io import BytesIO
 
 import discord
 import pysaucenao
 from discord.embeds import EmptyEmbed
 from discord.ext import commands
-from pysaucenao import SauceNao, ShortLimitReachedException, DailyLimitReachedException, SauceNaoException, \
-    InvalidOrWrongApiKeyException, InvalidImageException, VideoSource, MangaSource, GenericSource
-from pysaucenao.containers import ACCOUNT_ENHANCED
+from pysaucenao import DailyLimitReachedException, GenericSource, InvalidImageException, InvalidOrWrongApiKeyException, \
+    MangaSource, SauceNao, SauceNaoException, ShortLimitReachedException, VideoSource
+from pysaucenao.containers import ACCOUNT_ENHANCED, AnimeSource
 
 from saucebot.bot import bot
-from saucebot.config import config, server_api_limit, member_api_limit
-from saucebot.helpers import validate_url, basic_embed
+from saucebot.config import config, server_api_limit
+from saucebot.helpers import basic_embed, validate_url
 from saucebot.lang import lang
-from saucebot.models.database import Servers, SauceQueries, SauceCache
+from saucebot.models.database import SauceCache, SauceQueries, Servers
+from saucebot.tracemoe import ATraceMoe
 
 
 class Sauce(commands.Cog):
     """
     SauceNao commands
     """
+
+    IMAGE_URL_RE = re.compile(r"^https?://\S+(\.jpg|\.png|\.jpeg|\.webp)$")
+
     def __init__(self):
         self._log = logging.getLogger(__name__)
         self._api_key = config.get('SauceNao', 'api_key', fallback=None)
         self._re_api_key = re.compile(r"^[a-zA-Z0-9]{40}$")
+        self.tracemoe = None
+
         bot.loop.create_task(self.purge_cache())
+        self.ready_tracemoe()
+
+    def ready_tracemoe(self):
+        token = config.get('TraceMoe', 'token', fallback=None)
+        if token:
+            self.tracemoe = ATraceMoe(bot.loop, token)
 
     @commands.command(aliases=['source'])
     @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
@@ -36,28 +48,10 @@ class Sauce(commands.Cog):
         """
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
         """
-        # No URL specified? Check for attachments
-        if not url:
-            async for message in ctx.channel.history(limit=50):  # type: discord.Message
-                if not message.attachments:
-                    continue
+        # No URL specified? Check for attachments.
+        url = url or await self._get_last_image_post(ctx)
 
-                # Make sure there's an image attachment
-                attachment = None  # type: typing.Optional[discord.Attachment]
-                for _attachment in message.attachments:  # type: discord.Attachment
-                    if _attachment.width:
-                        attachment = _attachment
-                        break
-
-                # No image attachments?
-                if not attachment:
-                    continue
-
-                self._log.info(f"[{ctx.guild.name}] Attachment found: {attachment.url}")
-                url = attachment.url
-                break
-
-        # If we still don't have a URL, that means no attachments have been recently uploaded and we have nothing to work with
+        # If we still don't have a URL, that means no attachments have been recently uploaded, and we have nothing to work with
         if not url:
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
             return
@@ -69,37 +63,26 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'bad_url')))
             return
 
+        # Make sure this user hasn't exceeded their API limits
+        if self._check_member_limited(ctx):
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'),
+                                             description=lang('Sauce', 'member_api_limit_exceeded')))
+            return
+
         # Attempt to find the source of this image
         try:
-            # Make sure this user hasn't exceeded their API limits
-            if self._check_member_limited(ctx):
-                await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'member_api_limit_exceeded')))
-                return
-
-            # Get the API key for this server
-            api_key = Servers.lookup_guild(ctx.guild)
-            if not api_key:
-                api_key = self._api_key
-
-            # Log the query
-            SauceQueries.log(ctx, url)
-
-            # Check if we have a cached entry
-            search = None
-            cache = SauceCache.fetch(url)  # type: SauceCache
-            if cache:
-                container = getattr(pysaucenao.containers, cache.result_class)
-                sauce = container(cache.header, cache.result)  # type: GenericSource
-                self._log.info(f'Cache entry found: {sauce.title}')
-            else:
-                # Initialize SauceNao and execute a search query
-                saucenao = SauceNao(api_key=api_key, min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
-                search = await saucenao.from_url(url)
-                sauce = search.results[0] if search.results else None
-
-                # Cache the search result
-                if sauce:
-                    SauceCache.add_or_update(url, sauce)
+            preview = None
+            sauce = await self._get_sauce(ctx, url)
+            if isinstance(sauce, AnimeSource):
+                preview_file, nsfw = await self._video_preview(sauce, url, True)
+                if preview_file:
+                    if nsfw and not ctx.channel.is_nsfw():
+                        self._log.info(f"Channel #{ctx.channel.name} is not NSFW; not uploading an NSFW video here")
+                    else:
+                        preview = discord.File(
+                                BytesIO(preview_file),
+                                filename=f"{sauce.title}_preview.mp4".lower().replace(' ', '_')
+                        )
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
@@ -116,18 +99,90 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
 
-        if search:
-            repr = reprlib.Repr()
-            repr.maxstring = 16
-            self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {repr.repr(api_key)}")
-            self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {repr.repr(api_key)}")
-
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
             return
 
-        # Build our embed
+        await ctx.send(embed=self._build_sauce_embed(ctx, sauce), file=preview)
+
+    async def _get_last_image_post(self, ctx: commands.context.Context) -> typing.Optional[str]:
+        """
+        Get the most recently posted image in this channel
+        Args:
+            ctx (commands.context.Context):
+
+        Returns:
+            typing.Optional[str]
+        """
+        async for message in ctx.channel.history(limit=50):  # type: discord.Message
+            # Make sure there's an image attachment
+            image_attachments = []  # type: typing.Optional[typing.List[discord.Attachment]]
+            for _attachment in message.attachments:  # type: discord.Attachment
+                if _attachment.url and str(_attachment.url).endswith(('.jpg', '.png', '.gif', '.jpeg', '.webp')):
+                    image_attachments.append(_attachment)
+
+            # No image attachments?
+            if image_attachments:
+                self._log.info(f"[{ctx.guild.name}] Attachment found: {image_attachments[0].url}")
+                return image_attachments[0].url
+
+            if self.IMAGE_URL_RE.match(message.content):
+                self._log.debug(f"[{ctx.guild.name}] Message contains an embedded image link: {message.content}")
+                return message.content
+
+    async def _get_sauce(self, ctx: commands.context.Context, url: str) -> typing.Optional[GenericSource]:
+        """
+        Perform a SauceNao lookup on the supplied URL
+        Args:
+            ctx (commands.context.Context):
+            url (str):
+
+        Returns:
+            typing.Optional[GenericSource]
+        """
+        # Get the API key for this server
+        api_key = Servers.lookup_guild(ctx.guild)
+        if not api_key:
+            api_key = self._api_key
+
+        # Log the query
+        SauceQueries.log(ctx, url)
+
+        cache = SauceCache.fetch(url)  # type: SauceCache
+        if cache:
+            container   = getattr(pysaucenao.containers, cache.result_class)
+            sauce       = container(cache.header, cache.result)  # type: GenericSource
+            self._log.info(f'Cache entry found: {sauce.title}')
+        else:
+            # Initialize SauceNao and execute a search query
+            saucenao = SauceNao(api_key=api_key,
+                                min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
+            search = await saucenao.from_url(url)
+            sauce = search.results[0] if search.results else None
+
+            # Log output
+            rep = reprlib.Repr()
+            rep.maxstring = 16
+            self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {rep.repr(api_key)}")
+            self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {rep.repr(api_key)}")
+
+            # Cache the search result
+            if sauce:
+                SauceCache.add_or_update(url, sauce)
+
+        return sauce
+
+    def _build_sauce_embed(self, ctx: commands.context.Context, sauce: GenericSource) -> discord.Embed:
+        """
+        Builds a Discord embed for the provided SauceNao lookup
+        Args:
+            ctx (commands.context.Context)
+            sauce (GenericSource):
+
+        Returns:
+            discord.Embed
+        """
         embed = basic_embed()
         embed.set_footer(text=lang('Sauce', 'found', member=ctx.author), icon_url='https://i.imgur.com/Mw109wP.png')
         embed.title = sauce.title or sauce.author_name or "Untitled"
@@ -145,7 +200,44 @@ class Sauce(commands.Cog):
         if isinstance(sauce, MangaSource):
             embed.add_field(name=lang('Sauce', 'chapter'), value=sauce.chapter)
 
-        await ctx.send(embed=embed)
+        return embed
+
+    async def _video_preview(self, sauce: AnimeSource, path_or_fh: typing.Union[str, typing.BinaryIO],
+                             is_url: bool) -> typing.Tuple[typing.Optional[bytes], bool]:
+        """
+        Attempt to grab a video preview of an AnimeSource entry from trace.moe
+        Args:
+            sauce (AnimeSource): An anime of hentai source
+            path_or_fh (typing.Union[str, typing.BinaryIO]): Path or file handler
+            is_url (bool): Path is a URL to an image rather than a file path.
+
+        Returns:
+            typing.Tuple[typing.Optional[bytes], bool]: The video preview if available, and whether the video is NSFW.
+        """
+        if not self.tracemoe:
+            return None, False
+
+        # noinspection PyBroadException
+        try:
+            tracemoe_sauce = await self.tracemoe.search(path_or_fh, is_url=is_url)
+        except Exception:
+            self._log.exception("Tracemoe returned an exception, aborting search query")
+            return None, False
+        if not tracemoe_sauce.get('docs'):
+            self._log.info("Tracemoe returned no results")
+            return None, False
+
+        # Make sure our search results match
+        if await sauce.load_ids():
+            if sauce.anilist_id != tracemoe_sauce['docs'][0]['anilist_id']:
+                self._log.info(f"saucenao and trace.moe provided mismatched anilist entries: `{sauce.anilist_id}` vs. `{tracemoe_sauce['docs'][0]['anilist_id']}`")
+                return None, False
+
+            self._log.info(f'Downloading video preview for AniList entry {sauce.anilist_id} from trace.moe')
+            tracemoe_preview = await self.tracemoe.video_preview_natural(tracemoe_sauce)
+            return tracemoe_preview, tracemoe_sauce['docs'][0]['is_adult']
+
+        return None, False
 
     @sauce.error
     async def sauce_error(self, ctx: commands.context.Context, error) -> None:

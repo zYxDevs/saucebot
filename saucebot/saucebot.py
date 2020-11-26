@@ -1,6 +1,7 @@
 import discord
 
 from saucebot.bot import bot
+from saucebot.cogs.admin import Admin
 from saucebot.cogs.misc import Misc
 from saucebot.cogs.sauce import Sauce
 from saucebot.log import log
@@ -8,6 +9,7 @@ from saucebot.log import log
 
 bot.add_cog(Sauce())
 bot.add_cog(Misc())
+bot.add_cog(Admin())
 
 
 @bot.event
