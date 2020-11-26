@@ -74,12 +74,15 @@ class Sauce(commands.Cog):
             preview = None
             sauce = await self._get_sauce(ctx, url)
             if isinstance(sauce, AnimeSource):
-                preview_file = await self._video_preview(sauce, url, True)
+                preview_file, nsfw = await self._video_preview(sauce, url, True)
                 if preview_file:
-                    preview = discord.File(
-                            BytesIO(preview_file),
-                            filename=f"{sauce.title}_preview.mp4".lower().replace(' ', '_')
-                    )
+                    if nsfw and not ctx.channel.is_nsfw():
+                        self._log.info(f"Channel #{ctx.channel.name} is not NSFW; not uploading an NSFW video here")
+                    else:
+                        preview = discord.File(
+                                BytesIO(preview_file),
+                                filename=f"{sauce.title}_preview.mp4".lower().replace(' ', '_')
+                        )
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
@@ -200,7 +203,7 @@ class Sauce(commands.Cog):
         return embed
 
     async def _video_preview(self, sauce: AnimeSource, path_or_fh: typing.Union[str, typing.BinaryIO],
-                             is_url: bool) -> typing.Optional[bytes]:
+                             is_url: bool) -> typing.Tuple[typing.Optional[bytes], bool]:
         """
         Attempt to grab a video preview of an AnimeSource entry from trace.moe
         Args:
@@ -209,32 +212,32 @@ class Sauce(commands.Cog):
             is_url (bool): Path is a URL to an image rather than a file path.
 
         Returns:
-
+            typing.Tuple[typing.Optional[bytes], bool]: The video preview if available, and whether the video is NSFW.
         """
         if not self.tracemoe:
-            return None
+            return None, False
 
         # noinspection PyBroadException
         try:
             tracemoe_sauce = await self.tracemoe.search(path_or_fh, is_url=is_url)
         except Exception:
             self._log.exception("Tracemoe returned an exception, aborting search query")
-            return None
+            return None, False
         if not tracemoe_sauce.get('docs'):
             self._log.info("Tracemoe returned no results")
-            return None
+            return None, False
 
         # Make sure our search results match
         if await sauce.load_ids():
             if sauce.anilist_id != tracemoe_sauce['docs'][0]['anilist_id']:
                 self._log.info(f"saucenao and trace.moe provided mismatched anilist entries: `{sauce.anilist_id}` vs. `{tracemoe_sauce['docs'][0]['anilist_id']}`")
-                return None
+                return None, False
 
             self._log.info(f'Downloading video preview for AniList entry {sauce.anilist_id} from trace.moe')
             tracemoe_preview = await self.tracemoe.video_preview_natural(tracemoe_sauce)
-            return tracemoe_preview
+            return tracemoe_preview, tracemoe_sauce['docs'][0]['is_adult']
 
-        return None
+        return None, False
 
     @sauce.error
     async def sauce_error(self, ctx: commands.context.Context, error) -> None:
