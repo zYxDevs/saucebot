@@ -14,7 +14,7 @@ db = Database()
 
 if config.has_section('MySQL'):
     db.bind(provider='mysql', host=config.get('MySQL', 'hostname'), user=config.get('MySQL', 'username'),
-            passwd=config.get('MySQL', 'password'), db=config.get('MySQL', 'database'))
+            passwd=config.get('MySQL', 'password'), db=config.get('MySQL', 'database'), charset='utf8mb4')
 else:
     db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
 
@@ -150,6 +150,65 @@ class SauceQueries(db.Entity):
         log.debug(f"Counting how many queries {user} has made in the last {minutes} minute(s)")
         cutoff = int(time()) - (minutes * 60)
         return count(q for q in SauceQueries if q.queried > cutoff)
+
+
+class GuildBanlist(db.Entity):
+    server_id   = Required(int, size=64, index=True)
+    banned_on   = Required(int, size=32)
+    reason      = Optional(str, max_len=3000)
+
+    @db_session
+    def check(guild: typing.Union[discord.Guild, int]) -> bool:
+        """
+        Check whether the specified guild has been banned
+        Args:
+            guild (typing.Union[discord.Guild, int]): The guild / server that is being checked.
+
+        Returns:
+            bool
+        """
+        guild_id = guild.id if isinstance(guild, discord.Guild) else guild
+        banned = GuildBanlist.get(server_id=guild_id)
+        return True if banned else False
+
+    @db_session
+    def ban(guild: discord.Guild, reason: typing.Optional[str] = None):
+        """
+        Adds a guild to the server ban list
+        Args:
+            guild (discord.Guild): The guild / server that is being banned
+            reason (typing.Optional[str]): An optional reason which will be sent to the guild owner.
+
+        Returns:
+            None
+        """
+        now = int(time())
+        if reason:
+            reason = reason[:1000]
+
+        log.warning(f"Guild {guild.name} ({guild.id}) is being added to the server banlist")
+        GuildBanlist(server_id=guild.id, banned_on=now, reason=reason)
+
+    @db_session
+    def unban(guild: typing.Union[discord.Guild, int]) -> bool:
+        """
+        Removed a guild to the server ban list
+        Args:
+            guild (typing.Union[discord.Guild, int]): The guild / server that is being unbanned.
+
+        Returns:
+            bool: Returns False if the guild isn't on the banlist
+        """
+        # Make sure the guild has actually been banned first
+        guild_id = guild.id if isinstance(guild, discord.Guild) else guild
+        entry = GuildBanlist.get(server_id=guild_id)
+        if not entry:
+            log.warning(f"Attempting to unban guild {guild_id}, but it's not on the banlist")
+            return False
+
+        log.warning(f"Guild {guild_id} is being removed from the server banlist")
+        entry.delete()
+        return True
 
 
 db.generate_mapping(create_tables=True)
