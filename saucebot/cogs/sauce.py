@@ -3,6 +3,7 @@ import logging
 import re
 import reprlib
 import typing
+from io import BytesIO
 
 import discord
 import pysaucenao
@@ -10,13 +11,14 @@ from discord.embeds import EmptyEmbed
 from discord.ext import commands
 from pysaucenao import DailyLimitReachedException, GenericSource, InvalidImageException, InvalidOrWrongApiKeyException, \
     MangaSource, SauceNao, SauceNaoException, ShortLimitReachedException, VideoSource
-from pysaucenao.containers import ACCOUNT_ENHANCED
+from pysaucenao.containers import ACCOUNT_ENHANCED, AnimeSource
 
 from saucebot.bot import bot
 from saucebot.config import config, server_api_limit
 from saucebot.helpers import basic_embed, validate_url
 from saucebot.lang import lang
 from saucebot.models.database import SauceCache, SauceQueries, Servers
+from saucebot.tracemoe import ATraceMoe
 
 
 class Sauce(commands.Cog):
@@ -30,7 +32,15 @@ class Sauce(commands.Cog):
         self._log = logging.getLogger(__name__)
         self._api_key = config.get('SauceNao', 'api_key', fallback=None)
         self._re_api_key = re.compile(r"^[a-zA-Z0-9]{40}$")
+        self.tracemoe = None
+
         bot.loop.create_task(self.purge_cache())
+        self.ready_tracemoe()
+
+    def ready_tracemoe(self):
+        token = config.get('TraceMoe', 'token', fallback=None)
+        if token:
+            self.tracemoe = ATraceMoe(bot.loop, token)
 
     @commands.command(aliases=['source'])
     @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
@@ -61,7 +71,15 @@ class Sauce(commands.Cog):
 
         # Attempt to find the source of this image
         try:
+            preview = None
             sauce = await self._get_sauce(ctx, url)
+            if isinstance(sauce, AnimeSource):
+                preview_file = await self._video_preview(sauce, url, True)
+                if preview_file:
+                    preview = discord.File(
+                            BytesIO(preview_file),
+                            filename=f"{sauce.title}_preview.mp4".lower().replace(' ', '_')
+                    )
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
@@ -83,9 +101,9 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
             return
 
-        await ctx.send(embed=self._build_sauce_embed(ctx, sauce))
+        await ctx.send(embed=self._build_sauce_embed(ctx, sauce), file=preview)
 
-    async def _get_last_image_post(self, ctx: commands.context.Context):
+    async def _get_last_image_post(self, ctx: commands.context.Context) -> typing.Optional[str]:
         """
         Get the most recently posted image in this channel
         Args:
@@ -180,6 +198,43 @@ class Sauce(commands.Cog):
             embed.add_field(name=lang('Sauce', 'chapter'), value=sauce.chapter)
 
         return embed
+
+    async def _video_preview(self, sauce: AnimeSource, path_or_fh: typing.Union[str, typing.BinaryIO],
+                             is_url: bool) -> typing.Optional[bytes]:
+        """
+        Attempt to grab a video preview of an AnimeSource entry from trace.moe
+        Args:
+            sauce (AnimeSource): An anime of hentai source
+            path_or_fh (typing.Union[str, typing.BinaryIO]): Path or file handler
+            is_url (bool): Path is a URL to an image rather than a file path.
+
+        Returns:
+
+        """
+        if not self.tracemoe:
+            return None
+
+        # noinspection PyBroadException
+        try:
+            tracemoe_sauce = await self.tracemoe.search(path_or_fh, is_url=is_url)
+        except Exception:
+            self._log.exception("Tracemoe returned an exception, aborting search query")
+            return None
+        if not tracemoe_sauce.get('docs'):
+            self._log.info("Tracemoe returned no results")
+            return None
+
+        # Make sure our search results match
+        if await sauce.load_ids():
+            if sauce.anilist_id != tracemoe_sauce['docs'][0]['anilist_id']:
+                self._log.info(f"saucenao and trace.moe provided mismatched anilist entries: `{sauce.anilist_id}` vs. `{tracemoe_sauce['docs'][0]['anilist_id']}`")
+                return None
+
+            self._log.info(f'Downloading video preview for AniList entry {sauce.anilist_id} from trace.moe')
+            tracemoe_preview = await self.tracemoe.video_preview_natural(tracemoe_sauce)
+            return tracemoe_preview
+
+        return None
 
     @sauce.error
     async def sauce_error(self, ctx: commands.context.Context, error) -> None:
