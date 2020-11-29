@@ -159,7 +159,8 @@ class Sauce(commands.Cog):
         else:
             # Initialize SauceNao and execute a search query
             saucenao = SauceNao(api_key=api_key,
-                                min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)))
+                                min_similarity=float(config.get('SauceNao', 'min_similarity', fallback=50.0)),
+                                priority=[21, 22, 5, 37, 25])
             search = await saucenao.from_url(url)
             sauce = search.results[0] if search.results else None
 
