@@ -106,7 +106,7 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
             return
 
-        await ctx.send(embed=self._build_sauce_embed(ctx, sauce), file=preview)
+        await ctx.send(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
 
     async def _get_last_image_post(self, ctx: commands.context.Context) -> typing.Optional[str]:
         """
@@ -176,7 +176,7 @@ class Sauce(commands.Cog):
 
         return sauce
 
-    def _build_sauce_embed(self, ctx: commands.context.Context, sauce: GenericSource) -> discord.Embed:
+    async def _build_sauce_embed(self, ctx: commands.context.Context, sauce: GenericSource) -> discord.Embed:
         """
         Builds a Discord embed for the provided SauceNao lookup
         Args:
@@ -199,6 +199,19 @@ class Sauce(commands.Cog):
         if isinstance(sauce, VideoSource):
             embed.add_field(name=lang('Sauce', 'episode'), value=sauce.episode)
             embed.add_field(name=lang('Sauce', 'timestamp'), value=sauce.timestamp)
+
+        if isinstance(sauce, AnimeSource):
+            await sauce.load_ids()
+            urls = [(lang('Sauce', 'anidb'), sauce.anidb_url)]
+
+            if sauce.mal_url:
+                urls.append((lang('Sauce', 'mal'), sauce.mal_url))
+
+            if sauce.anilist_url:
+                urls.append((lang('Sauce', 'anilist'), sauce.anilist_url))
+
+            urls = ' • '.join([f"[{t}]({u})" for t, u in urls])
+            embed.add_field(name=lang('Sauce', 'more_info'), value=urls, inline=False)
 
         if isinstance(sauce, MangaSource):
             embed.add_field(name=lang('Sauce', 'chapter'), value=sauce.chapter)
