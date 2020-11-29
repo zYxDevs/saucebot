@@ -247,8 +247,8 @@ class Sauce(commands.Cog):
             if not tracemoe_sauce.get('docs'):
                 self._log.info("Tracemoe returned no results")
                 return None, False
-        except Exception:
-            self._log.exception("Tracemoe returned an exception, aborting search query")
+        except Exception as e:
+            self._log.error(f"Tracemoe returned an exception: {e}")
             return None, False
 
         # Make sure our search results match

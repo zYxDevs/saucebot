@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
-# authors: Ethosa
+# authors: Ethosa, FujiMakoto
 import io
-from json import loads
+import re
 from base64 import b64encode
+from json import loads
 
 from aiohttp import ClientSession
+from PIL import Image
 
 
 class ATraceMoe:
+
+    DISCORD_IMAGE_URL_RE = re.compile(r'^https://cdn\.discordapp\.com/attachments/(\S)+\.(jpg|jpeg|png|webp|gif)$')
+
     def __init__(self, loop, token=""):
         """
         Initialize trace moe API.
@@ -16,9 +21,13 @@ class ATraceMoe:
         self.main_url = "https://trace.moe/"
         self.media_url = "https://media.trace.moe/"
         self.token = token
-        self.session = ClientSession(loop=loop, headers={
-            "Content-Type": "application/json"
-        })
+        self.session = ClientSession(
+                loop=loop,
+                headers={
+                    "Content-Type": "application/json"
+                },
+                raise_for_status=True
+        )
 
     async def me(self):
         """
@@ -114,9 +123,32 @@ class ATraceMoe:
             url += "?token=%s" % (self.token)
 
         if is_url:
-            response = await self.session.get(
-                url, params={"url": path}
-            )
+            # Discord URL's tend to break with trace.moe at the moment
+            if self.DISCORD_IMAGE_URL_RE.match(path):
+                # Load the image
+                response = await self.session.get(path, read_until_eof=False)
+                data = io.BytesIO(await response.read())
+
+                # Verify it's a valid image first
+                image = Image.open(data)
+                image.verify()
+                image = Image.open(data)
+
+                # If it's an animated gif, we need to extract a frame
+                if image.is_animated:
+                    data = io.BytesIO()
+                    image.seek(0)
+                    image.save(data, format='PNG')
+
+                del image
+                encoded = b64encode(data.getvalue()).decode("utf-8")
+                response = await self.session.post(
+                        url, json={"image": encoded, "filter": search_filter}
+                )
+            else:
+                response = await self.session.get(
+                    url, params={"url": path}
+                )
             return loads(await response.text())
         elif isinstance(path, io.BufferedIOBase):
             encoded = b64encode(path.read()).decode("utf-8")
