@@ -105,7 +105,22 @@ class Sauce(commands.Cog):
 
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'not_found', member=ctx.author)))
+            embed = basic_embed(title=lang('Sauce', 'not_found', member=ctx.author),
+                                description=lang('Sauce', 'not_found_advice'))
+
+            google_url  = f"https://www.google.com/searchbyimage?image_url={url}&safe=off"
+            ascii_url   = f"https://ascii2d.net/search/url/{url}"
+            yandex_url  = f"https://yandex.com/images/search?url={url}&rpt=imageview"
+
+            urls = [
+                (lang('Sauce', 'google'), google_url),
+                (lang('Sauce', 'ascii2d'), ascii_url),
+                (lang('Sauce', 'yandex'), yandex_url)
+            ]
+            urls = ' • '.join([f"[{t}]({u})" for t, u in urls])
+
+            embed.add_field(name=lang('Sauce', 'search_engines'), value=urls)
+            await ctx.send(embed=embed)
             return
 
         await ctx.send(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
