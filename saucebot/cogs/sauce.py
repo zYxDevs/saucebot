@@ -231,11 +231,11 @@ class Sauce(commands.Cog):
         # noinspection PyBroadException
         try:
             tracemoe_sauce = await self.tracemoe.search(path_or_fh, is_url=is_url)
+            if not tracemoe_sauce.get('docs'):
+                self._log.info("Tracemoe returned no results")
+                return None, False
         except Exception:
             self._log.exception("Tracemoe returned an exception, aborting search query")
-            return None, False
-        if not tracemoe_sauce.get('docs'):
-            self._log.info("Tracemoe returned no results")
             return None, False
 
         # Make sure our search results match
