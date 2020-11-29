@@ -11,7 +11,7 @@ from discord.embeds import EmptyEmbed
 from discord.ext import commands
 from pysaucenao import DailyLimitReachedException, GenericSource, InvalidImageException, InvalidOrWrongApiKeyException, \
     MangaSource, SauceNao, SauceNaoException, ShortLimitReachedException, VideoSource
-from pysaucenao.containers import ACCOUNT_ENHANCED, AnimeSource
+from pysaucenao.containers import ACCOUNT_ENHANCED, AnimeSource, BooruSource
 
 from saucebot.bot import bot
 from saucebot.config import config, server_api_limit
@@ -201,6 +201,14 @@ class Sauce(commands.Cog):
 
         if isinstance(sauce, MangaSource):
             embed.add_field(name=lang('Sauce', 'chapter'), value=sauce.chapter)
+
+        if isinstance(sauce, BooruSource):
+            if sauce.characters:
+                characters = [c.title() for c in sauce.characters]
+                embed.add_field(name=lang('Sauce', 'characters'), value=', '.join(characters), inline=False)
+            if sauce.material:
+                material = [m.title() for m in sauce.material]
+                embed.add_field(name=lang('Sauce', 'material'), value=', '.join(material), inline=False)
 
         return embed
 
