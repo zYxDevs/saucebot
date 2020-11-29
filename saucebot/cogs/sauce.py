@@ -49,6 +49,7 @@ class Sauce(commands.Cog):
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
         """
         # No URL specified? Check for attachments.
+        url_provided = url is not None
         url = url or await self._get_last_image_post(ctx)
 
         # If we still don't have a URL, that means no attachments have been recently uploaded, and we have nothing to work with
@@ -99,7 +100,8 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
         finally:
-            await ctx.message.delete()
+            if not url_provided:
+                await ctx.message.delete()
 
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
