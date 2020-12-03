@@ -99,9 +99,6 @@ class Sauce(commands.Cog):
             self._log.exception(f"[{ctx.guild.name}] An unknown error occurred while looking up this image")
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
-        finally:
-            if not url_provided:
-                await ctx.message.delete()
 
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
@@ -124,6 +121,7 @@ class Sauce(commands.Cog):
             return
 
         await ctx.send(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
+        await ctx.message.delete()
 
     async def _get_last_image_post(self, ctx: commands.context.Context) -> typing.Optional[str]:
         """
