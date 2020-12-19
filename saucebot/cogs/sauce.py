@@ -136,17 +136,37 @@ class Sauce(commands.Cog):
             # Make sure there's an image attachment
             image_attachments = []  # type: typing.Optional[typing.List[discord.Attachment]]
             for _attachment in message.attachments:  # type: discord.Attachment
-                if _attachment.url and str(_attachment.url).endswith(('.jpg', '.png', '.gif', '.jpeg', '.webp')):
+                # Native images
+                if self._get_attachment_image(_attachment):
                     image_attachments.append(_attachment)
 
-            # No image attachments?
+            # Do we have any images?
             if image_attachments:
-                self._log.info(f"[{ctx.guild.name}] Attachment found: {image_attachments[0].url}")
-                return image_attachments[0].url
+                image_url = self._get_attachment_image(image_attachments[0])
+                self._log.info(f"[{ctx.guild.name}] Attachment found: {image_url}")
+                return image_url
 
             if self.IMAGE_URL_RE.match(message.content):
                 self._log.debug(f"[{ctx.guild.name}] Message contains an embedded image link: {message.content}")
                 return message.content
+
+    def _get_attachment_image(self, attachment: discord.Attachment) -> typing.Optional[str]:
+        """
+        Gets the image associated with an attachment, including support for video attachments
+        Args:
+            attachment (discord.Attachment): The attachment to process.
+
+        Returns:
+            typing.Optional[str]
+        """
+        if not attachment.url:
+            return None
+
+        if attachment.url and str(attachment.url).endswith(('.jpg', '.png', '.gif', '.jpeg', '.webp')):
+            return attachment.url
+
+        if attachment.url and str(attachment.url).endswith(('.mp4', '.webm', '.mov')):
+            return attachment.proxy_url + '?format=jpeg'
 
     async def _get_sauce(self, ctx: commands.context.Context, url: str) -> typing.Optional[GenericSource]:
         """
