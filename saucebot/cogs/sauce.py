@@ -15,7 +15,7 @@ from pysaucenao.containers import ACCOUNT_ENHANCED, AnimeSource, BooruSource
 
 from saucebot.bot import bot
 from saucebot.config import config, server_api_limit
-from saucebot.helpers import basic_embed, validate_url
+from saucebot.helpers import basic_embed, keycap_emoji, keycap_to_int, reaction_check, validate_url
 from saucebot.lang import lang
 from saucebot.models.database import SauceCache, SauceQueries, Servers
 from saucebot.tracemoe import ATraceMoe
@@ -49,7 +49,6 @@ class Sauce(commands.Cog):
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
         """
         # No URL specified? Check for attachments.
-        url_provided = url is not None
         url = url or await self._get_last_image_post(ctx)
 
         # If we still don't have a URL, that means no attachments have been recently uploaded, and we have nothing to work with
@@ -142,7 +141,8 @@ class Sauce(commands.Cog):
 
             # Do we have any images?
             if image_attachments:
-                image_url = self._get_attachment_image(image_attachments[0])
+                attachment = await self._index_prompt(ctx, ctx.channel, image_attachments)
+                image_url = self._get_attachment_image(attachment)
                 self._log.info(f"[{ctx.guild.name}] Attachment found: {image_url}")
                 return image_url
 
@@ -167,6 +167,25 @@ class Sauce(commands.Cog):
 
         if attachment.url and str(attachment.url).endswith(('.mp4', '.webm', '.mov')):
             return attachment.proxy_url + '?format=jpeg'
+
+    async def _index_prompt(self, ctx: commands.context.Context, channel: discord.TextChannel, items: list):
+        prompt = await channel.send(lang('Sauce', 'multiple_images'))  # type: discord.Message
+        index_range = range(1, min(len(items), 10) + 1)
+
+        # Add the numerical emojis. The syntax is weird for this.
+        for index in index_range:
+            await prompt.add_reaction(keycap_emoji(index))
+
+        try:
+            check = reaction_check(prompt, [ctx.message.author.id], [keycap_emoji(i) for i in index_range])
+            reaction, user = await ctx.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.message.delete()
+            await prompt.delete()
+            return
+
+        await prompt.delete()
+        return items[keycap_to_int(reaction) - 1]
 
     async def _get_sauce(self, ctx: commands.context.Context, url: str) -> typing.Optional[GenericSource]:
         """
