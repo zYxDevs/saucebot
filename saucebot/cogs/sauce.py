@@ -75,22 +75,22 @@ class Sauce(commands.Cog):
             sauce = await self._get_sauce(ctx, url)
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')), delete_after=30.0)
             return
         except InvalidOrWrongApiKeyException:
             self._log.warning(f"[{ctx.guild.name}] API key was rejected by SauceNao")
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'rejected_api_key')))
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'rejected_api_key')), delete_after=30.0)
             return
         except InvalidImageException:
             self._log.info(f"[{ctx.guild.name}] An invalid image / image link was provided")
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')), delete_after=30.0)
             return
         except SauceNaoException:
             self._log.exception(f"[{ctx.guild.name}] An unknown error occurred while looking up this image")
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
+            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')), delete_after=30.0)
             return
 
         # If it's an anime, see if we can find a preview clip
