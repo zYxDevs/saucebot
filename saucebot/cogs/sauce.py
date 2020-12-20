@@ -49,6 +49,7 @@ class Sauce(commands.Cog):
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
         """
         # No URL specified? Check for attachments.
+        image_in_command = bool(url) or bool(self._get_image_attachments(ctx.message))
         url = url or await self._get_last_image_post(ctx)
 
         # If we still don't have a URL, that means no attachments have been recently uploaded, and we have nothing to work with
@@ -128,7 +129,10 @@ class Sauce(commands.Cog):
             return
 
         await ctx.send(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
-        await ctx.message.delete()
+
+        # Only delete the command message if it doesn't contain the image we just looked up
+        if not image_in_command:
+            await ctx.message.delete()
 
     async def _get_last_image_post(self, ctx: commands.context.Context) -> typing.Optional[str]:
         """
@@ -140,14 +144,9 @@ class Sauce(commands.Cog):
             typing.Optional[str]
         """
         async for message in ctx.channel.history(limit=50):  # type: discord.Message
-            # Make sure there's an image attachment
-            image_attachments = []  # type: typing.Optional[typing.List[discord.Attachment]]
-            for _attachment in message.attachments:  # type: discord.Attachment
-                # Native images
-                if self._get_attachment_image(_attachment):
-                    image_attachments.append(_attachment)
+            # Do we have any image or video attachments?
+            image_attachments = self._get_image_attachments(message)
 
-            # Do we have any images?
             if image_attachments:
                 if len(image_attachments) > 1:
                     attachment = await self._index_prompt(ctx, ctx.channel, image_attachments)
@@ -158,9 +157,27 @@ class Sauce(commands.Cog):
                 self._log.info(f"[{ctx.guild.name}] Attachment found: {image_url}")
                 return image_url
 
+            # How about a valid image link?
             if self.IMAGE_URL_RE.match(message.content):
                 self._log.debug(f"[{ctx.guild.name}] Message contains an embedded image link: {message.content}")
                 return message.content
+
+    def _get_image_attachments(self, message: discord.Message) -> typing.Optional[typing.List[discord.Attachment]]:
+        """
+        Gets all image attachments associated with an image.
+        Args:
+            message (discord.Message): The message to check.
+
+        Returns:
+            list
+        """
+        image_attachments = []
+        for attachment in message.attachments:  # type: discord.Attachment
+            # Native images
+            if self._get_attachment_image(attachment):
+                image_attachments.append(attachment)
+
+        return image_attachments
 
     def _get_attachment_image(self, attachment: discord.Attachment) -> typing.Optional[str]:
         """
