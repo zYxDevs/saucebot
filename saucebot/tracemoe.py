@@ -135,7 +135,7 @@ class ATraceMoe:
                 image = Image.open(data)
 
                 # If it's an animated gif, we need to extract a frame
-                if image.is_animated:
+                if hasattr(image, 'is_animated') and image.is_animated:
                     data = io.BytesIO()
                     image.seek(0)
                     image.save(data, format='PNG')
