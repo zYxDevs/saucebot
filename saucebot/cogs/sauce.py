@@ -149,7 +149,11 @@ class Sauce(commands.Cog):
 
             # Do we have any images?
             if image_attachments:
-                attachment = await self._index_prompt(ctx, ctx.channel, image_attachments)
+                if len(image_attachments) > 1:
+                    attachment = await self._index_prompt(ctx, ctx.channel, image_attachments)
+                else:
+                    attachment = image_attachments[0]
+
                 image_url = self._get_attachment_image(attachment)
                 self._log.info(f"[{ctx.guild.name}] Attachment found: {image_url}")
                 return image_url
