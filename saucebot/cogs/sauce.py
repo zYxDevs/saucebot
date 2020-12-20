@@ -73,16 +73,6 @@ class Sauce(commands.Cog):
         try:
             preview = None
             sauce = await self._get_sauce(ctx, url)
-            if isinstance(sauce, AnimeSource):
-                preview_file, nsfw = await self._video_preview(sauce, url, True)
-                if preview_file:
-                    if nsfw and not ctx.channel.is_nsfw():
-                        self._log.info(f"Channel #{ctx.channel.name} is not NSFW; not uploading an NSFW video here")
-                    else:
-                        preview = discord.File(
-                                BytesIO(preview_file),
-                                filename=f"{sauce.title}_preview.mp4".lower().replace(' ', '_')
-                        )
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
             return
@@ -99,6 +89,19 @@ class Sauce(commands.Cog):
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
             return
 
+        # If it's an anime, see if we can find a preview clip
+        if isinstance(sauce, AnimeSource):
+            preview_file, nsfw = await self._video_preview(sauce, url, True)
+            if preview_file:
+                if nsfw and not ctx.channel.is_nsfw():
+                    self._log.info(f"Channel #{ctx.channel.name} is not NSFW; not uploading an NSFW video here")
+                else:
+                    preview = discord.File(
+                            BytesIO(preview_file),
+                            filename=f"{sauce.title}_preview.mp4".lower().replace(' ', '_')
+                    )
+
+        # We didn't find anything, provide some suggestions for manual investigation
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
             embed = basic_embed(title=lang('Sauce', 'not_found', member=ctx.author),
