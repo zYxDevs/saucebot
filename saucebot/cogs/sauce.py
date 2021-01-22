@@ -124,7 +124,6 @@ class Sauce(commands.Cog):
             urls = ' • '.join([f"[{t}]({u})" for t, u in urls])
 
             embed.add_field(name=lang('Sauce', 'search_engines'), value=urls)
-            await ctx.message.delete(60.0)
             await ctx.send(embed=embed, delete_after=60.0)
             return
 
