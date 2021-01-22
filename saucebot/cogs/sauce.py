@@ -46,7 +46,8 @@ class Sauce(commands.Cog):
     @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
     async def sauce(self, ctx: commands.context.Context, url: typing.Optional[str] = None) -> None:
         """
-        Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
+        Get the source of the attached image, the image in the message you replied to, the specified image URL,
+        or the last image uploaded to the channel if none of these are supplied
         """
         # No URL specified? Check for attachments.
         image_in_command = bool(url) or bool(self._get_image_attachments(ctx.message))
