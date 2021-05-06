@@ -21,6 +21,7 @@ from saucebot.models.database import SauceCache, SauceQueries, Servers
 from saucebot.tracemoe import ATraceMoe
 
 
+# noinspection PyMethodMayBeStatic
 class Sauce(commands.Cog):
     """
     SauceNao commands
@@ -76,22 +77,46 @@ class Sauce(commands.Cog):
             sauce = await self._get_sauce(ctx, url)
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')), delete_after=30.0)
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'api_limit_exceeded')
+                ),
+                delete_after=30.0
+            )
             return
         except InvalidOrWrongApiKeyException:
             self._log.warning(f"[{ctx.guild.name}] API key was rejected by SauceNao")
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'rejected_api_key')), delete_after=30.0)
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'rejected_api_key')
+                ),
+                delete_after=30.0
+            )
             return
         except InvalidImageException:
             self._log.info(f"[{ctx.guild.name}] An invalid image / image link was provided")
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')), delete_after=30.0)
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'no_images')
+                ),
+                delete_after=30.0
+            )
             return
         except SauceNaoException:
             self._log.exception(f"[{ctx.guild.name}] An unknown error occurred while looking up this image")
             await ctx.message.delete()
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')), delete_after=30.0)
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'api_offline')
+                ),
+                delete_after=30.0
+            )
             return
 
         # If it's an anime, see if we can find a preview clip
@@ -250,8 +275,12 @@ class Sauce(commands.Cog):
             # Log output
             rep = reprlib.Repr()
             rep.maxstring = 16
-            self._log.debug(f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {rep.repr(api_key)}")
-            self._log.info(f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {rep.repr(api_key)}")
+            self._log.debug(
+                f"[{ctx.guild.name}] {search.short_remaining} short API queries remaining for {rep.repr(api_key)}"
+            )
+            self._log.info(
+                f"[{ctx.guild.name}] {search.long_remaining} daily API queries remaining for {rep.repr(api_key)}"
+            )
 
             # Cache the search result
             if sauce:
@@ -337,7 +366,8 @@ class Sauce(commands.Cog):
         # Make sure our search results match
         if await sauce.load_ids():
             if sauce.anilist_id != tracemoe_sauce['docs'][0]['anilist_id']:
-                self._log.info(f"saucenao and trace.moe provided mismatched anilist entries: `{sauce.anilist_id}` vs. `{tracemoe_sauce['docs'][0]['anilist_id']}`")
+                self._log.info(f"saucenao and trace.moe provided mismatched anilist entries: "
+                               f"`{sauce.anilist_id}` vs. `{tracemoe_sauce['docs'][0]['anilist_id']}`")
                 return None, False
 
             self._log.info(f'Downloading video preview for AniList entry {sauce.anilist_id} from trace.moe')
@@ -364,7 +394,12 @@ class Sauce(commands.Cog):
                 return
 
             self._log.info(f"[{ctx.guild.name}] Guild has exceeded their available API queries for the day")
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_limit_exceeded')))
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'api_limit_exceeded')
+                )
+            )
 
         raise error
 
@@ -402,7 +437,12 @@ class Sauce(commands.Cog):
 
         # Make sure the API key is formatted properly
         if not self._re_api_key.match(api_key):
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'bad_api_key')))
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'bad_api_key')
+                )
+            )
             return
 
         # Test and make sure it's a valid enhanced-level API key
@@ -411,20 +451,38 @@ class Sauce(commands.Cog):
 
         # Make sure the test went through successfully
         if not test.success:
-            self._log.error(f"[{ctx.guild.name}] An unknown error occurred while assigning an API key to this server",
-                            exc_info=test.error)
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_offline')))
+            self._log.error(
+                f"[{ctx.guild.name}] An unknown error occurred while assigning an API key to this server",
+                exc_info=test.error
+            )
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'api_offline')
+                )
+            )
             return
 
         # Make sure this is an enhanced API key
         if test.account_type != ACCOUNT_ENHANCED:
             self._log.info(f"[{ctx.guild.name}] Rejecting an attempt to register a free API key")
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'api_free')))
+            await ctx.send(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'api_free')
+                )
+            )
             return
 
         Servers.register(ctx.guild, api_key)
-        await ctx.send(embed=basic_embed(title=lang('Global', 'generic_success'), description=lang('Sauce', 'registered_api_key')))
+        await ctx.send(
+            embed=basic_embed(
+                title=lang('Global', 'generic_success'),
+                description=lang('Sauce', 'registered_api_key')
+            )
+        )
 
+    # noinspection PyBroadException
     async def purge_cache(self):
         """
         Task to purge SauceNao cache entries older than 24-hours every 6-hours
