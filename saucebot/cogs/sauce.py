@@ -45,7 +45,7 @@ class Sauce(commands.Cog):
 
     @commands.command(aliases=['source'])
     @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
-    async def sauce(self, ctx: commands.context.Context, url: typing.Optional[str] = None) -> None:
+    async def sauce(self, ctx: commands.Context, url: typing.Optional[str] = None) -> None:
         """
         Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
         """
@@ -159,11 +159,11 @@ class Sauce(commands.Cog):
         if not image_in_command:
             await ctx.message.delete()
 
-    async def _get_last_image_post(self, ctx: commands.context.Context) -> typing.Optional[str]:
+    async def _get_last_image_post(self, ctx: commands.Context) -> typing.Optional[str]:
         """
         Get the most recently posted image in this channel
         Args:
-            ctx (commands.context.Context):
+            ctx (commands.Context):
 
         Returns:
             typing.Optional[str]
@@ -222,7 +222,7 @@ class Sauce(commands.Cog):
         if attachment.url and str(attachment.url).endswith(('.mp4', '.webm', '.mov')):
             return attachment.proxy_url + '?format=jpeg'
 
-    async def _index_prompt(self, ctx: commands.context.Context, channel: discord.TextChannel, items: list):
+    async def _index_prompt(self, ctx: commands.Context, channel: discord.TextChannel, items: list):
         prompt = await channel.send(lang('Sauce', 'multiple_images'))  # type: discord.Message
         index_range = range(1, min(len(items), 10) + 1)
 
@@ -241,11 +241,11 @@ class Sauce(commands.Cog):
         await prompt.delete()
         return items[keycap_to_int(reaction) - 1]
 
-    async def _get_sauce(self, ctx: commands.context.Context, url: str) -> typing.Optional[GenericSource]:
+    async def _get_sauce(self, ctx: commands.Context, url: str) -> typing.Optional[GenericSource]:
         """
         Perform a SauceNao lookup on the supplied URL
         Args:
-            ctx (commands.context.Context):
+            ctx (commands.Context):
             url (str):
 
         Returns:
@@ -288,11 +288,11 @@ class Sauce(commands.Cog):
 
         return sauce
 
-    async def _build_sauce_embed(self, ctx: commands.context.Context, sauce: GenericSource) -> discord.Embed:
+    async def _build_sauce_embed(self, ctx: commands.Context, sauce: GenericSource) -> discord.Embed:
         """
         Builds a Discord embed for the provided SauceNao lookup
         Args:
-            ctx (commands.context.Context)
+            ctx (commands.Context)
             sauce (GenericSource):
 
         Returns:
@@ -377,11 +377,11 @@ class Sauce(commands.Cog):
         return None, False
 
     @sauce.error
-    async def sauce_error(self, ctx: commands.context.Context, error) -> None:
+    async def sauce_error(self, ctx: commands.Context, error) -> None:
         """
         Override guild cooldowns for servers with their own API keys provided
         Args:
-            ctx (commands.context.Context):
+            ctx (commands.Context):
             error (Exception):
 
         Returns:
@@ -403,11 +403,11 @@ class Sauce(commands.Cog):
 
         raise error
 
-    def _check_member_limited(self, ctx: commands.context.Context) -> bool:
+    def _check_member_limited(self, ctx: commands.Context) -> bool:
         """
         Check if the author of this message has exceeded their API limits
         Args:
-            ctx (commands.context.Context):
+            ctx (commands.Context):
 
         Returns:
             bool
@@ -423,7 +423,7 @@ class Sauce(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     @commands.cooldown(5, 1800, commands.BucketType.guild)
-    async def apikey(self, ctx: commands.context.Context, api_key: str) -> None:
+    async def apikey(self, ctx: commands.Context, api_key: str) -> None:
         """
         Define your own enhanced SauceNao API key for this server.
 

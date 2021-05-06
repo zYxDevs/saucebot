@@ -1,8 +1,8 @@
 import asyncio
 import logging
+import typing
 
 import discord
-import typing
 from discord.ext import commands
 
 from saucebot.lang import lang
@@ -21,7 +21,7 @@ class Admin(commands.Cog):
 
     @commands.command(name="ban-guild", aliases=["gban"])
     @commands.is_owner()
-    async def ban_guild(self, ctx: commands.context.Context, guild_id: int, *, reason: typing.Optional[str] = None):
+    async def ban_guild(self, ctx: commands.Context, guild_id: int, *, reason: typing.Optional[str] = None):
         """
         Bans a specified guild from using SauceBot
         Upon issuing this command, the bot will immediately leave the guild if they are already invited.
@@ -71,7 +71,7 @@ class Admin(commands.Cog):
 
     @commands.command(name="unban-guild", aliases=["ungban"])
     @commands.is_owner()
-    async def unabn_guild(self, ctx: commands.context.Context, guild_id: int):
+    async def unabn_guild(self, ctx: commands.Context, guild_id: int):
         """
         Removed a specified guild from the bots banlist
         """
