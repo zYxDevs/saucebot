@@ -37,7 +37,8 @@ def basic_embed(**kwargs) -> discord.Embed:
         discord.Embed
     """
     embed = discord.Embed(**kwargs)
-    embed.set_thumbnail(url=bot.user.avatar_url)
+    thumbnail = kwargs.pop('avatar') if 'avatar' in kwargs else bot.user.avatar_url
+    embed.set_thumbnail(url=thumbnail)
 
     return embed
 
