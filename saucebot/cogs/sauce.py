@@ -99,49 +99,45 @@ class Sauce(commands.Cog):
             sauce = await self._get_sauce(ctx, url)
         except (ShortLimitReachedException, DailyLimitReachedException):
             await ctx.message.delete()
-            await ctx.send(
+            await ctx.reply(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
                     description=lang('Sauce', 'api_limit_exceeded'),
                     avatar=saucebot.assets.AVATAR_THINKING
-                ),
-                delete_after=30.0
+                )
             )
             return
         except InvalidOrWrongApiKeyException:
             self._log.warning(f"[{ctx.guild.name}] API key was rejected by SauceNao")
             await ctx.message.delete()
-            await ctx.send(
+            await ctx.reply(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
                     description=lang('Sauce', 'rejected_api_key'),
                     avatar=saucebot.assets.AVATAR_THINKING
-                ),
-                delete_after=30.0
+                )
             )
             return
         except InvalidImageException:
             self._log.info(f"[{ctx.guild.name}] An invalid image / image link was provided")
             await ctx.message.delete()
-            await ctx.send(
+            await ctx.reply(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
                     description=lang('Sauce', 'no_images'),
                     avatar=saucebot.assets.AVATAR_SILLY
-                ),
-                delete_after=30.0
+                )
             )
             return
         except SauceNaoException:
             self._log.exception(f"[{ctx.guild.name}] An unknown error occurred while looking up this image")
             await ctx.message.delete()
-            await ctx.send(
+            await ctx.reply(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
                     description=lang('Sauce', 'api_offline'),
                     avatar=saucebot.assets.AVATAR_THINKING
-                ),
-                delete_after=30.0
+                )
             )
             return
 
@@ -178,10 +174,10 @@ class Sauce(commands.Cog):
             urls = ' • '.join([f"[{t}]({u})" for t, u in urls])
 
             embed.add_field(name=lang('Sauce', 'search_engines'), value=urls)
-            await ctx.send(embed=embed, delete_after=60.0)
+            await ctx.reply(embed=embed)
             return
 
-        await ctx.send(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
+        await ctx.reply(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
 
         # Only delete the command message if it doesn't contain the image we just looked up
         if not image_in_command and not ctx.message.reference:
