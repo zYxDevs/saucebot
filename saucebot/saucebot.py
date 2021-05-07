@@ -1,4 +1,5 @@
 import discord
+import sentry_sdk
 from discord.ext import commands
 
 from saucebot.bot import bot
@@ -24,6 +25,11 @@ async def on_command_error(ctx: commands.Context, error: Exception):
     # Stop spamming our console everytime someone uses another bots command
     if isinstance(error, commands.CommandNotFound):
         return
+
+    # Apparently sentry.io isn't catching these normally(?)
+    if isinstance(error, commands.CommandInvokeError):
+        sentry_sdk.capture_exception(error)
+        raise error
 
     raise error
 
