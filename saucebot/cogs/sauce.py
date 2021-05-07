@@ -13,6 +13,7 @@ from pysaucenao import DailyLimitReachedException, GenericSource, InvalidImageEx
     MangaSource, SauceNao, SauceNaoException, ShortLimitReachedException, VideoSource
 from pysaucenao.containers import ACCOUNT_ENHANCED, AnimeSource, BooruSource
 
+import saucebot.assets
 from saucebot.bot import bot
 from saucebot.config import config, server_api_limit
 from saucebot.helpers import basic_embed, keycap_emoji, keycap_to_int, reaction_check, validate_url
@@ -101,7 +102,8 @@ class Sauce(commands.Cog):
             await ctx.send(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
-                    description=lang('Sauce', 'api_limit_exceeded')
+                    description=lang('Sauce', 'api_limit_exceeded'),
+                    avatar=saucebot.assets.AVATAR_THINKING
                 ),
                 delete_after=30.0
             )
@@ -112,7 +114,8 @@ class Sauce(commands.Cog):
             await ctx.send(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
-                    description=lang('Sauce', 'rejected_api_key')
+                    description=lang('Sauce', 'rejected_api_key'),
+                    avatar=saucebot.assets.AVATAR_THINKING
                 ),
                 delete_after=30.0
             )
@@ -123,7 +126,8 @@ class Sauce(commands.Cog):
             await ctx.send(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
-                    description=lang('Sauce', 'no_images')
+                    description=lang('Sauce', 'no_images'),
+                    avatar=saucebot.assets.AVATAR_SILLY
                 ),
                 delete_after=30.0
             )
@@ -134,7 +138,8 @@ class Sauce(commands.Cog):
             await ctx.send(
                 embed=basic_embed(
                     title=lang('Global', 'generic_error'),
-                    description=lang('Sauce', 'api_offline')
+                    description=lang('Sauce', 'api_offline'),
+                    avatar=saucebot.assets.AVATAR_THINKING
                 ),
                 delete_after=30.0
             )
@@ -155,8 +160,11 @@ class Sauce(commands.Cog):
         # We didn't find anything, provide some suggestions for manual investigation
         if not sauce:
             self._log.info(f"[{ctx.guild.name}] No image sources found")
-            embed = basic_embed(title=lang('Sauce', 'not_found', member=ctx.author),
-                                description=lang('Sauce', 'not_found_advice'))
+            embed = basic_embed(
+                title=lang('Sauce', 'not_found', member=ctx.author),
+                description=lang('Sauce', 'not_found_advice'),
+                avatar=saucebot.assets.AVATAR_THINKING
+            )
 
             google_url  = f"https://www.google.com/searchbyimage?image_url={url}&safe=off"
             ascii_url   = f"https://ascii2d.net/search/url/{url}"
@@ -320,10 +328,16 @@ class Sauce(commands.Cog):
             discord.Embed
         """
         embed = basic_embed()
-        embed.set_footer(text=lang('Sauce', 'found', member=ctx.author), icon_url='https://i.imgur.com/Mw109wP.png')
+        embed.set_footer(text=lang('Sauce', 'found', member=ctx.author), icon_url=saucebot.assets.ICON_FOOTER)
         embed.title = sauce.title or sauce.author_name or "Untitled"
         embed.url = sauce.url
         embed.description = lang('Sauce', 'match_title', {'index': sauce.index, 'similarity': sauce.similarity})
+
+        # For low similarity results, tweak our response a bit
+        if sauce.similarity <= 60:
+            embed.set_thumbnail(url=saucebot.assets.AVATAR_THINKING)
+            embed.description = lang('Sauce', 'match_title', {'index': sauce.index, 'similarity': sauce.similarity})
+            embed.set_footer(text=lang('Sauce', 'found_low_confidence', member=ctx.author), icon_url=saucebot.assets.ICON_FOOTER)
 
         if sauce.author_name and sauce.title:
             embed.set_author(name=sauce.author_name, url=sauce.author_url or EmptyEmbed)
