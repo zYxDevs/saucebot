@@ -151,6 +151,19 @@ class SauceQueries(db.Entity):
         cutoff = int(time()) - (minutes * 60)
         return count(q for q in SauceQueries if q.queried > cutoff)
 
+    # noinspection PyTypeChecker
+    @db_session
+    def count_total() -> int:
+        """
+        Get a count of the total number of sauce requests the bot has ever received
+        Returns:
+            int
+        """
+        total = count(q for q in SauceQueries)
+        log.debug(f"Counted {total} total number of saucenao queries")
+
+        return total
+
 
 class GuildBanlist(db.Entity):
     server_id   = Required(int, size=64, index=True)
