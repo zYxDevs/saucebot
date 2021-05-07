@@ -6,6 +6,7 @@ from saucebot.bot import bot
 from saucebot.cogs.admin import Admin
 from saucebot.cogs.misc import Misc
 from saucebot.cogs.sauce import Sauce
+from saucebot.config import config
 from saucebot.log import log
 
 bot.add_cog(Sauce())
@@ -28,7 +29,8 @@ async def on_command_error(ctx: commands.Context, error: Exception):
 
     # Apparently sentry.io isn't catching these normally(?)
     if isinstance(error, commands.CommandInvokeError):
-        sentry_sdk.capture_exception(error)
+        if config.has_option('Bot', 'sentry_logging') and config.getboolean('Bot', 'sentry_logging'):
+            sentry_sdk.capture_exception(error)
         raise error
 
     raise error
