@@ -7,7 +7,7 @@ idna==3.1
 multidict==4.7.6
 Pillow==8.2.0
 pony==0.7.14
-pysaucenao==1.6.0
+pysaucenao==1.6.1
 typing-extensions==3.10.0.0
 yarl==1.5.1
 sentry-sdk==1.0.0
