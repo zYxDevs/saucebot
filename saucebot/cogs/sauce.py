@@ -69,7 +69,13 @@ class Sauce(commands.Cog):
 
             # If we passed a reference and found nothing, we should abort now
             if not url:
-                await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
+                await ctx.reply(
+                    embed=basic_embed(
+                        title=lang('Global', 'generic_error'),
+                        description=lang('Sauce', 'no_images'),
+                        avatar=saucebot.assets.AVATAR_SILLY
+                    )
+                )
                 return
 
         # Lastly, if all else fails, search for the last message in the channel with an image upload
@@ -77,20 +83,37 @@ class Sauce(commands.Cog):
 
         # Still nothing? We tried everything we could, exit with an error
         if not url:
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
+            await ctx.reply(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'no_images'),
+                    avatar=saucebot.assets.AVATAR_SILLY
+                )
+            )
             return
 
         self._log.info(f"[{ctx.guild.name}] Looking up image source/sauce: {url}")
 
         # Make sure the URL is valid
         if not validate_url(url):
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'bad_url')))
+            await ctx.reply(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'bad_url'),
+                    avatar=saucebot.assets.AVATAR_SILLY
+                )
+            )
             return
 
         # Make sure this user hasn't exceeded their API limits
         if self._check_member_limited(ctx):
-            await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'),
-                                             description=lang('Sauce', 'member_api_limit_exceeded')))
+            await ctx.reply(
+                embed=basic_embed(
+                    title=lang('Global', 'generic_error'),
+                    description=lang('Sauce', 'member_api_limit_exceeded'),
+                    avatar=saucebot.assets.AVATAR_SILLY
+                )
+            )
             return
 
         # Attempt to find the source of this image
