@@ -5,6 +5,7 @@ import typing
 import discord
 from discord.ext import commands
 
+from saucebot.helpers import basic_embed
 from saucebot.lang import lang
 from saucebot.models.database import GuildBanlist
 
@@ -18,6 +19,28 @@ class Admin(commands.Cog):
 
     CONFIRM_EMOJI   = '<:confirm:781477845888794655>'
     ABORT_EMOJI     = '<:deny:781478098100027412>'
+
+    @commands.command()
+    @commands.is_owner()
+    async def query_guild(self, ctx: commands.Context, guild_id: int):
+        """
+        Queries basic metadata (name, member count) from a guild ID for analytics
+        This is boilerplate testing code. In the future we may implement a restriction on how many guilds a single
+        user can invite the bot too. This is to prevent users from exploiting the bot via self-botting scripts.
+        """
+        guild = ctx.bot.get_guild(guild_id)  # type: discord.Guild
+        if not guild:
+            await ctx.reply(lang('Admin', 'guild_404'))
+            return
+        owner = guild.owner  # type: typing.Optional[discord.Member]
+
+        embed = basic_embed(title=guild.name)
+        embed.add_field(name=lang('Misc', 'stats_guild_id'), value=str(guild.id), inline=True)
+        if owner:
+            embed.add_field(name=lang('Misc', 'stats_owner_id'), value=str(owner.id), inline=True)
+            embed.set_author(name=owner.display_name, icon_url=owner.avatar_url)
+
+        await ctx.reply(embed=embed)
 
     @commands.command(name="ban-guild", aliases=["gban"])
     @commands.is_owner()
