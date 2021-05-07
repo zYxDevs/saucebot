@@ -341,7 +341,7 @@ class Sauce(commands.Cog):
 
         if sauce.author_name and sauce.title:
             embed.set_author(name=sauce.author_name, url=sauce.author_url or EmptyEmbed)
-        embed.set_thumbnail(url=sauce.thumbnail)
+        embed.set_image(url=sauce.thumbnail)
 
         if isinstance(sauce, VideoSource):
             embed.add_field(name=lang('Sauce', 'episode'), value=sauce.episode)
