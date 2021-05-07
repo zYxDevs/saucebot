@@ -24,5 +24,5 @@ log.addHandler(ch)
 query_log.addHandler(ch)
 
 # Unless you're running your own custom fork of saucebot, you probably don't need this.
-if config.has_option('Bot', 'sentry_logging') and config.getboolean('System', 'sentry_logging'):
+if config.has_option('Bot', 'sentry_logging') and config.getboolean('Bot', 'sentry_logging'):
     sentry_sdk.init(config.get('Bot', 'sentry_dsn'), traces_sample_rate=0.25)
