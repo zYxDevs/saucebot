@@ -4,7 +4,7 @@ import typing
 
 import discord
 
-from saucebot.bot import bot
+import saucebot.assets
 from saucebot.log import log
 
 # https://daringfireball.net/2010/07/improved_regex_for_matching_urls
@@ -37,7 +37,7 @@ def basic_embed(**kwargs) -> discord.Embed:
         discord.Embed
     """
     embed = discord.Embed(**kwargs)
-    thumbnail = kwargs.pop('avatar') if 'avatar' in kwargs else bot.user.avatar_url
+    thumbnail = kwargs.pop('avatar') if 'avatar' in kwargs else saucebot.assets.AVATAR_CONFIDENT
     embed.set_thumbnail(url=thumbnail)
 
     return embed
