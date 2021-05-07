@@ -39,10 +39,21 @@ Want to give SauceBot a try? Join the support discord and use the `#sfw-lookups`
 
 https://discord.gg/p7fstG4
 
-### Supporters
-#### Main Characters
-* Tsuneoshi (Tsune#0301)
+### Patreons
 
-If you sponsor this project on Patreon, your name will be added here!
+Thank you so much to all of our supporters on [Patreon](https://www.patreon.com/saucebot)! It means a lot to me that you
+believe in this project enough to help fund it.
 
-https://www.patreon.com/saucebot
+#### Main Characters ($6)
+
+* Part
+
+#### Supporting Characters ($3)
+
+* Tamschi
+* Justin Whang
+* Joe Young
+* SUZUSHIIRO
+* Compsense
+* JL
+* Migi
