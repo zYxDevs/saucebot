@@ -47,13 +47,34 @@ class Sauce(commands.Cog):
     @commands.cooldown(server_api_limit or 10000, 86400, commands.BucketType.guild)
     async def sauce(self, ctx: commands.Context, url: typing.Optional[str] = None) -> None:
         """
-        Get the sauce for the attached image, the specified image URL, or the last image uploaded to the channel
+        Get the source of the attached image, the image in the message you replied to, the specified image URL,
+        or the last image uploaded to the channel if none of these are supplied
         """
         # No URL specified? Check for attachments.
         image_in_command = bool(url) or bool(self._get_image_attachments(ctx.message))
+
+        # Next, check and see if we're replying to a message
+        if ctx.message.reference and not image_in_command:
+            reference = ctx.message.reference.resolved
+            self._log.debug(f"Message reference in command: {reference}")
+            if isinstance(reference, discord.Message):
+                image_attachments = self._get_image_attachments(reference)
+                if image_attachments:
+                    if len(image_attachments) > 1:
+                        attachment = await self._index_prompt(ctx, ctx.channel, image_attachments)
+                        url = attachment.url
+                    else:
+                        url = image_attachments[0].url
+
+            # If we passed a reference and found nothing, we should abort now
+            if not url:
+                await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
+                return
+
+        # Lastly, if all else fails, search for the last message in the channel with an image upload
         url = url or await self._get_last_image_post(ctx)
 
-        # If we still don't have a URL, that means no attachments have been recently uploaded, and we have nothing to work with
+        # Still nothing? We tried everything we could, exit with an error
         if not url:
             await ctx.send(embed=basic_embed(title=lang('Global', 'generic_error'), description=lang('Sauce', 'no_images')))
             return
@@ -149,14 +170,13 @@ class Sauce(commands.Cog):
             urls = ' • '.join([f"[{t}]({u})" for t, u in urls])
 
             embed.add_field(name=lang('Sauce', 'search_engines'), value=urls)
-            await ctx.message.delete(60.0)
             await ctx.send(embed=embed, delete_after=60.0)
             return
 
         await ctx.send(embed=await self._build_sauce_embed(ctx, sauce), file=preview)
 
         # Only delete the command message if it doesn't contain the image we just looked up
-        if not image_in_command:
+        if not image_in_command and not ctx.message.reference:
             await ctx.message.delete()
 
     async def _get_last_image_post(self, ctx: commands.Context) -> typing.Optional[str]:
@@ -202,6 +222,7 @@ class Sauce(commands.Cog):
             if self._get_attachment_image(attachment):
                 image_attachments.append(attachment)
 
+        self._log.debug(f"Found {len(image_attachments)} image(s) in message {message.id}")
         return image_attachments
 
     def _get_attachment_image(self, attachment: discord.Attachment) -> typing.Optional[str]:
